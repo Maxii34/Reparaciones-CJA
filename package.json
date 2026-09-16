@@ -1,7 +1,7 @@
 {
   "name": "sistema-reparacion",
   "version": "1.0.0",
-  "description": "",
+  "description": "Sistema de Reparación — API",
   "main": "index.js",
   "scripts": {
   "dev": "tsx watch src/index.ts",
@@ -12,7 +12,7 @@
   "test:watch": "vitest"
 },
   "keywords": [],
-  "author": "",
+  "author": "Maximiliano Ordoñez",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
@@ -38,5 +38,11 @@
     "@types/pg": "^8.23.1",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "prisma@7.10.0": true,
+    "@prisma/engines@7.10.0": true,
+    "bcrypt@6.0.0": true
   }
 }

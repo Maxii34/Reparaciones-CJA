@@ -7,6 +7,8 @@ app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 
-app.get("/", (req, res) => res.send("Servidor funcionando 🚀"));
+app.get("/", (req, res) => {
+  res.send("Sistema de Reparación — API funcionando correctamente 🚀");
+});
 
 export default app;
