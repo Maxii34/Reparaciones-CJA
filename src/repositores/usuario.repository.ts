@@ -1,48 +1,34 @@
 import { prisma } from "../config/prisma";
-import type { Prisma, Usuario } from "../generated/prisma/client";
-
-export type UsuarioPublico = Omit<Usuario, "passwordHash">;
-
-const usuarioPublicoSelect = {
-  id: true,
-  nombre: true,
-  email: true,
-  rol: true,
-  activo: true,
-  createdAt: true,
-  updatedAt: true,
-} satisfies Prisma.UsuarioSelect;
+import { Prisma, RolUsuario } from "../generated/prisma/client";
 
 export const usuarioRepository = {
-  findAll(activo?: boolean): Promise<UsuarioPublico[]> {
-    return prisma.usuario.findMany({
-      where: activo === undefined ? undefined : { activo },
-      select: usuarioPublicoSelect,
-      orderBy: { id: "asc" },
-    });
-  },
+  findAll: () =>
+    prisma.usuario.findMany({
+      where: { activo: true },
+      select: { id: true, nombre: true, email: true, rol: true, activo: true, createdAt: true },
+    }),
 
-  findById(id: number): Promise<UsuarioPublico | null> {
-    return prisma.usuario.findUnique({
+  findById: (id: number) =>
+    prisma.usuario.findUnique({
       where: { id },
-      select: usuarioPublicoSelect,
-    });
-  },
+      select: { id: true, nombre: true, email: true, rol: true, activo: true, createdAt: true },
+    }),
 
-  // Incluye passwordHash: usar solo para login/verificación de credenciales
-  findByEmail(email: string): Promise<Usuario | null> {
-    return prisma.usuario.findUnique({ where: { email } });
-  },
+  findByEmail: (email: string) =>
+    prisma.usuario.findUnique({ where: { email } }),
 
-  create(data: Prisma.UsuarioCreateInput): Promise<UsuarioPublico> {
-    return prisma.usuario.create({ data, select: usuarioPublicoSelect });
-  },
+  findByRol: (rol: RolUsuario) =>
+    prisma.usuario.findMany({
+      where: { rol, activo: true },
+      select: { id: true, nombre: true, email: true, rol: true, activo: true, createdAt: true },
+    }),
 
-  update(id: number, data: Prisma.UsuarioUpdateInput): Promise<UsuarioPublico> {
-    return prisma.usuario.update({ where: { id }, data, select: usuarioPublicoSelect });
-  },
+  create: (data: Prisma.UsuarioCreateInput) =>
+    prisma.usuario.create({ data }),
 
-  remove(id: number): Promise<UsuarioPublico> {
-    return prisma.usuario.delete({ where: { id }, select: usuarioPublicoSelect });
-  },
+  update: (id: number, data: Prisma.UsuarioUpdateInput) =>
+    prisma.usuario.update({ where: { id }, data }),
+
+  delete: (id: number) =>
+    prisma.usuario.update({ where: { id }, data: { activo: false } }),
 };
