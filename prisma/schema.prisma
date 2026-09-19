@@ -91,8 +91,9 @@ model Cliente {
   dni       String?  @unique
   telefono  String?
   whatsapp  String?
-  email     String?
+  email     String?  @unique
   direccion String?
+  activo    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
