@@ -15,6 +15,6 @@ app.get("/", (req, res) => {
 
 // Inicio de rutas
 app.use("/api/usuario", usuarioRoutes);
-app.use("/clientes", clienteRoutes);
+app.use("/api/cliente", clienteRoutes);
 
 export default app;
