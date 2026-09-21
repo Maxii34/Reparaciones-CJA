@@ -3,6 +3,7 @@ import cors from "cors";
 import morgan from "morgan";
 import usuarioRoutes from "./routes/usuario.routes";
 import clienteRoutes from "./routes/cliente.routes";
+import equipoRoutes from "./routes/equipo.routes";
 
 const app = express();
 app.use(cors());
@@ -16,5 +17,6 @@ app.get("/", (req, res) => {
 // Inicio de rutas
 app.use("/api/usuario", usuarioRoutes);
 app.use("/api/cliente", clienteRoutes);
+app.use("/api/equipo", equipoRoutes);
 
 export default app;
