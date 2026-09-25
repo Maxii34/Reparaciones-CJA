@@ -1,0 +1,137 @@
+import { ordenReparacionRepository } from "../repositores/ordenreparacion.repository";
+import { equipoRepository } from "../repositores/equipo.repository";
+import { usuarioRepository } from "../repositores/usuario.repository";
+import { NotFoundError } from "../utils/errors";
+import type {
+  CreateOrdenReparacionInput,
+  UpdateOrdenReparacionInput,
+} from "../validators/ordenReparacion.validation";
+
+// Re-exportamos los tipos de Zod como DTOs para mantener
+// una sola fuente de verdad (igual que equipo/cliente usan interfaces locales).
+export type CreateOrdenReparacionDTO = CreateOrdenReparacionInput;
+export type UpdateOrdenReparacionDTO = UpdateOrdenReparacionInput;
+
+const generarNumeroOrden = async (): Promise<string> => {
+  // Correlativo simple tipo OR-0001 basado en el conteo actual.
+  // Si hay colisión por borrados previos, Prisma tira P2002 y lo
+  // captura el errorHandler centralizado como 409.
+  const total = await ordenReparacionRepository.count();
+  const siguiente = total + 1;
+  return `OR-${String(siguiente).padStart(4, "0")}`;
+};
+
+export const ordenReparacionService = {
+  getAll: async (page: number, limit: number) => {
+    const skip = (page - 1) * limit;
+
+    const [ordenes, total] = await Promise.all([
+      ordenReparacionRepository.findAll(skip, limit),
+      ordenReparacionRepository.count(),
+    ]);
+
+    return {
+      data: ordenes,
+      meta: { total, page, limit, totalPaginas: Math.ceil(total / limit) },
+    };
+  },
+
+  getById: async (id: number) => {
+    const orden = await ordenReparacionRepository.findById(id);
+    if (!orden) {
+      throw new NotFoundError("Orden de reparación no encontrada");
+    }
+    return orden;
+  },
+
+  create: async (data: CreateOrdenReparacionDTO) => {
+    const equipo = await equipoRepository.findById(data.equipoId);
+    if (!equipo) {
+      throw new NotFoundError("Equipo no encontrado");
+    }
+
+    if (data.creadoPorId) {
+      const creadoPor = await usuarioRepository.findById(data.creadoPorId);
+      if (!creadoPor) {
+        throw new NotFoundError("Usuario creador no encontrado");
+      }
+    }
+
+    if (data.tecnicoId) {
+      const tecnico = await usuarioRepository.findById(data.tecnicoId);
+      if (!tecnico) {
+        throw new NotFoundError("Técnico no encontrado");
+      }
+    }
+
+    const numero = data.numero ?? (await generarNumeroOrden());
+
+    // El repository tipa como Prisma.OrdenReparacionCreateInput (versión con
+    // relaciones), por eso mapeamos los FK a connect en lugar de pasarlos directos.
+    const { equipoId, creadoPorId, tecnicoId, ...resto } = data;
+
+    return ordenReparacionRepository.create({
+      ...resto,
+      numero,
+      equipo: { connect: { id: equipoId } },
+      ...(creadoPorId ? { creadoPor: { connect: { id: creadoPorId } } } : {}),
+      ...(tecnicoId ? { tecnico: { connect: { id: tecnicoId } } } : {}),
+    });
+  },
+
+  update: async (id: number, data: UpdateOrdenReparacionDTO) => {
+    const orden = await ordenReparacionRepository.findById(id);
+    if (!orden) {
+      throw new NotFoundError("Orden de reparación no encontrada");
+    }
+
+    const { equipoId, creadoPorId, tecnicoId, ...resto } = data;
+
+    if (equipoId !== undefined) {
+      const equipo = await equipoRepository.findById(equipoId);
+      if (!equipo) {
+        throw new NotFoundError("Equipo no encontrado");
+      }
+    }
+
+    if (creadoPorId !== undefined && creadoPorId !== null) {
+      const creadoPor = await usuarioRepository.findById(creadoPorId);
+      if (!creadoPor) {
+        throw new NotFoundError("Usuario creador no encontrado");
+      }
+    }
+
+    if (tecnicoId !== undefined && tecnicoId !== null) {
+      const tecnico = await usuarioRepository.findById(tecnicoId);
+      if (!tecnico) {
+        throw new NotFoundError("Técnico no encontrado");
+      }
+    }
+
+    return ordenReparacionRepository.update(id, {
+      ...resto,
+      ...(equipoId !== undefined ? { equipo: { connect: { id: equipoId } } } : {}),
+      ...(creadoPorId !== undefined
+        ? creadoPorId === null
+          ? { creadoPor: { disconnect: true } }
+          : { creadoPor: { connect: { id: creadoPorId } } }
+        : {}),
+      ...(tecnicoId !== undefined
+        ? tecnicoId === null
+          ? { tecnico: { disconnect: true } }
+          : { tecnico: { connect: { id: tecnicoId } } }
+        : {}),
+    });
+  },
+
+  delete: async (id: number) => {
+    const orden = await ordenReparacionRepository.findById(id);
+    if (!orden) {
+      throw new NotFoundError("Orden de reparación no encontrada");
+    }
+    // Si la orden tiene pagos / repuestos / historial, Prisma tira error de
+    // FK (P2003 por Restrict o borrado en cascada según el schema),
+    // capturado por el errorHandler centralizado.
+    return ordenReparacionRepository.delete(id);
+  },
+};
