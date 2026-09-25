@@ -5,6 +5,7 @@ import usuarioRoutes from "./routes/usuario.routes";
 import clienteRoutes from "./routes/cliente.routes";
 import equipoRoutes from "./routes/equipo.routes";
 import ordenReparacionRoutes from "./routes/ordenReparacion.routes";
+import historialEstadoOrdenRoutes from "./routes/historialEstadoOrden.routes";
 
 const app = express();
 app.use(cors());
@@ -20,5 +21,6 @@ app.use("/api/usuario", usuarioRoutes);
 app.use("/api/cliente", clienteRoutes);
 app.use("/api/equipo", equipoRoutes);
 app.use("/api/orden-reparacion", ordenReparacionRoutes);
+app.use("/api/historial-estado-orden", historialEstadoOrdenRoutes);
 
 export default app;
