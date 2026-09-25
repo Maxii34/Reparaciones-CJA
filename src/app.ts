@@ -4,6 +4,7 @@ import morgan from "morgan";
 import usuarioRoutes from "./routes/usuario.routes";
 import clienteRoutes from "./routes/cliente.routes";
 import equipoRoutes from "./routes/equipo.routes";
+import ordenReparacionRoutes from "./routes/ordenReparacion.routes";
 
 const app = express();
 app.use(cors());
@@ -18,5 +19,6 @@ app.get("/", (req, res) => {
 app.use("/api/usuario", usuarioRoutes);
 app.use("/api/cliente", clienteRoutes);
 app.use("/api/equipo", equipoRoutes);
+app.use("/api/orden-reparacion", ordenReparacionRoutes);
 
 export default app;
