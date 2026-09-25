@@ -7,6 +7,7 @@ import equipoRoutes from "./routes/equipo.routes";
 import ordenReparacionRoutes from "./routes/ordenReparacion.routes";
 import historialEstadoOrdenRoutes from "./routes/historialEstadoOrden.routes";
 import repuestoRoutes from "./routes/repuesto.routes";
+import pagoRoutes from "./routes/pago.routes";
 
 const app = express();
 app.use(cors());
@@ -24,5 +25,6 @@ app.use("/api/equipo", equipoRoutes);
 app.use("/api/orden-reparacion", ordenReparacionRoutes);
 app.use("/api/historial-estado-orden", historialEstadoOrdenRoutes);
 app.use("/api/repuesto", repuestoRoutes);
+app.use("/api/pago", pagoRoutes);
 
 export default app;
