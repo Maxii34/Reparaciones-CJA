@@ -84,7 +84,7 @@ export const updateOrdenReparacionSchema = z.object({
   condicionFisica: z.array(condicionFisicaEnum).min(1).optional(),
   detalleCondicionFisica: z.string().max(1000).trim().optional().nullable(),
 
-  diagnostico: z.string().max(2000).trim().optional().nullable(),
+  diagnostico: z.string().trim().min(1, "El diagnóstico es obligatorio").max(2000),
   pruebasRealizadas: z.string().max(2000).trim().optional().nullable(),
   recomendaciones: z.string().max(2000).trim().optional().nullable(),
 
@@ -92,10 +92,10 @@ export const updateOrdenReparacionSchema = z.object({
   autorizadoCliente: z.boolean().optional(),
   fechaAutorizacion: z.coerce.date().optional().nullable(),
 
-  reparacionRealizada: z.string().max(2000).trim().optional().nullable(),
+  reparacionRealizada: z.string().trim().min(1, "La reparación realizada es obligatoria").max(2000),
   manoDeObra: decimalDinero.optional(),
 
-  precioFinal: decimalDinero.optional().nullable(),
+  precioFinal: decimalDinero,
   estadoPago: estadoPagoEnum.optional(),
 
   fechaEntrega: z.coerce.date().optional().nullable(),
@@ -105,10 +105,10 @@ export const updateOrdenReparacionSchema = z.object({
   firmaClienteRecepcion: z.boolean().optional(),
   firmaTecnicoRecepcion: z.boolean().optional(),
 
-  estado: estadoOrdenEnum.optional(),
+  estado: estadoOrdenEnum,
 
   creadoPorId: z.number().int().positive().optional().nullable(),
-  tecnicoId: z.number().int().positive().optional().nullable(),
+  tecnicoId: z.number().int().positive("El técnico a cargo es obligatorio"),
 });
 
 export const changeEstadoOrdenSchema = z.object({

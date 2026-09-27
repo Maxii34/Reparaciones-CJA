@@ -4,9 +4,9 @@ import { Prisma, RolUsuario } from "../generated/prisma/client";
 export const usuarioRepository = {
   findAll: () =>
     prisma.usuario.findMany({
-      where: { activo: true },
-      select: { id: true, nombre: true, email: true, rol: true, activo: true, createdAt: true },
-    }),
+    select: { id: true, nombre: true, email: true, rol: true, activo: true, createdAt: true },
+    orderBy: { nombre: "asc" },
+  }),
 
   findById: (id: number) =>
     prisma.usuario.findUnique({
