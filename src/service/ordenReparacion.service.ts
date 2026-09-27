@@ -1,6 +1,7 @@
 import { ordenReparacionRepository } from "../repositores/ordenreparacion.repository";
 import { equipoRepository } from "../repositores/equipo.repository";
 import { usuarioRepository } from "../repositores/usuario.repository";
+import { historialEstadoOrdenRepository } from "../repositores/historialEstadoOrden.repository";
 import { NotFoundError } from "../utils/errors";
 import type {
   CreateOrdenReparacionInput,
@@ -70,13 +71,22 @@ export const ordenReparacionService = {
     // relaciones), por eso mapeamos los FK a connect en lugar de pasarlos directos.
     const { equipoId, creadoPorId, tecnicoId, ...resto } = data;
 
-    return ordenReparacionRepository.create({
+    const creada = await ordenReparacionRepository.create({
       ...resto,
       numero,
       equipo: { connect: { id: equipoId } },
       ...(creadoPorId ? { creadoPor: { connect: { id: creadoPorId } } } : {}),
       ...(tecnicoId ? { tecnico: { connect: { id: tecnicoId } } } : {}),
     });
+
+    // Primera entrada de trazabilidad: la recepción inicial
+    await historialEstadoOrdenRepository.create({
+      ordenId: creada.id,
+      estado: creada.estado,
+      usuarioId: tecnicoId ?? creadoPorId ?? undefined,
+    });
+
+    return creada;
   },
 
   update: async (id: number, data: UpdateOrdenReparacionDTO) => {
@@ -108,7 +118,7 @@ export const ordenReparacionService = {
       }
     }
 
-    return ordenReparacionRepository.update(id, {
+    const actualizada = await ordenReparacionRepository.update(id, {
       ...resto,
       ...(equipoId !== undefined ? { equipo: { connect: { id: equipoId } } } : {}),
       ...(creadoPorId !== undefined
@@ -122,6 +132,17 @@ export const ordenReparacionService = {
           : { tecnico: { connect: { id: tecnicoId } } }
         : {}),
     });
+
+    // Trazabilidad automática: si cambió el estado, se registra en el historial
+    if (data.estado !== undefined && data.estado !== orden.estado) {
+      await historialEstadoOrdenRepository.create({
+        ordenId: id,
+        estado: data.estado,
+        usuarioId: tecnicoId ?? undefined,
+      });
+    }
+
+    return actualizada;
   },
 
   delete: async (id: number) => {

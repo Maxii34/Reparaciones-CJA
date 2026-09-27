@@ -11,11 +11,23 @@ export const ordenReparacionRepository = {
         take,
       // Orden ascendente por ID
       orderBy: { id: "asc" },
-      // Incluir equipo y cliente asociado
+      // Incluir equipo/cliente, técnico, pagos e historial para la ficha
       include: {
         equipo: {
           include: {
             cliente: true,
+          },
+        },
+        tecnico: {
+          select: { id: true, nombre: true, email: true, rol: true, activo: true },
+        },
+        pagos: {
+          orderBy: { fecha: "desc" },
+        },
+        historialEstados: {
+          orderBy: { fecha: "desc" },
+          include: {
+            usuario: { select: { id: true, nombre: true } },
           },
         },
       },
@@ -27,11 +39,23 @@ export const ordenReparacionRepository = {
     prisma.ordenReparacion.findUnique({
       // Buscar una orden de reparación por su ID
       where: { id },
-      // Incluir equipo y cliente asociado
+      // Incluir equipo/cliente, técnico, pagos e historial para la ficha
       include: {
         equipo: {
           include: {
             cliente: true,
+          },
+        },
+        tecnico: {
+          select: { id: true, nombre: true, email: true, rol: true, activo: true },
+        },
+        pagos: {
+          orderBy: { fecha: "desc" },
+        },
+        historialEstados: {
+          orderBy: { fecha: "desc" },
+          include: {
+            usuario: { select: { id: true, nombre: true } },
           },
         },
       },

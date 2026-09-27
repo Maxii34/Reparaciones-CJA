@@ -1,7 +1,7 @@
 import { pagoRepository } from "../repositores/pago.repository";
 import { ordenReparacionRepository } from "../repositores/ordenreparacion.repository";
 import { usuarioRepository } from "../repositores/usuario.repository";
-import { NotFoundError } from "../utils/errors";
+import { BadRequestError, NotFoundError } from "../utils/errors";
 import type {
   CreatePagoInput,
   UpdatePagoInput,
@@ -55,7 +55,28 @@ export const pagoService = {
       }
     }
 
-    return pagoRepository.create(data);
+    // La orden debe tener precio final para poder cobrar
+    if (orden.precioFinal === null || orden.precioFinal === undefined) {
+      throw new BadRequestError("La orden aún no tiene precio final cargado");
+    }
+    const precio = Number(orden.precioFinal);
+    const cobrado = (orden.pagos ?? []).reduce((acc, p) => acc + Number(p.monto), 0);
+    const saldo = Math.round((precio - cobrado) * 100) / 100;
+    if (Math.round((data.monto - saldo) * 100) / 100 > 0) {
+      throw new BadRequestError(
+        `El monto supera el saldo pendiente ($${saldo.toFixed(2)})`
+      );
+    }
+
+    const pago = await pagoRepository.create(data);
+
+    // Estado de pago automático según lo cobrado vs el precio final
+    const nuevoCobrado = Math.round((cobrado + data.monto) * 100) / 100;
+    await ordenReparacionRepository.update(data.ordenId, {
+      estadoPago: nuevoCobrado >= precio ? "PAGADO" : "PARCIAL",
+    });
+
+    return pago;
   },
 
   update: async (id: number, data: UpdatePagoDTO) => {
