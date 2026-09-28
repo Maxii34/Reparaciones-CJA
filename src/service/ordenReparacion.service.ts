@@ -1,4 +1,6 @@
 import { ordenReparacionRepository } from "../repositores/ordenreparacion.repository";
+import { fotoOrdenRepository } from "../repositores/fotoOrden.repository";
+import { subirImagenCloudinary, eliminarImagenCloudinary } from "../utils/subirImagenCloudinary";
 import { equipoRepository } from "../repositores/equipo.repository";
 import { usuarioRepository } from "../repositores/usuario.repository";
 import { historialEstadoOrdenRepository } from "../repositores/historialEstadoOrden.repository";
@@ -294,5 +296,37 @@ export const ordenReparacionService = {
     // FK (P2003 por Restrict o borrado en cascada según el schema),
     // capturado por el errorHandler centralizado.
     return ordenReparacionRepository.delete(id);
+  },
+
+  // Fotos de evidencia (1 a N por request, Cloudinary firmado)
+  agregarFotos: async (id: number, archivos: Express.Multer.File[]) => {
+    const orden = await ordenReparacionRepository.findById(id);
+    if (!orden) {
+      throw new NotFoundError("Orden de reparación no encontrada");
+    }
+    if (!archivos || archivos.length === 0) {
+      throw new BadRequestError("Debes enviar al menos una imagen en el campo 'fotos'");
+    }
+
+    const subidas = await Promise.all(archivos.map((a) => subirImagenCloudinary(a.buffer)));
+    const fotos = await Promise.all(
+      subidas.map((r) => fotoOrdenRepository.create(id, r.secure_url, r.public_id)),
+    );
+    return fotos;
+  },
+
+  eliminarFoto: async (fotoId: number) => {
+    const foto = await fotoOrdenRepository.findById(fotoId);
+    if (!foto) {
+      throw new NotFoundError("Foto no encontrada");
+    }
+    await fotoOrdenRepository.delete(fotoId);
+    // Borrado best-effort en Cloudinary: si falla, la fila ya se eliminó
+    try {
+      await eliminarImagenCloudinary(foto.publicId);
+    } catch {
+      // no bloquea la respuesta
+    }
+    return foto;
   },
 };

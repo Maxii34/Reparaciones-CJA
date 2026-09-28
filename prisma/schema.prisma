@@ -188,10 +188,24 @@ model OrdenReparacion {
   repuestosUsados  RepuestoUsado[]
   pagos            Pago[]
   historialEstados HistorialEstadoOrden[]
+  fotos            FotoOrden[]
 
   @@index([equipoId])
   @@index([estado])
   @@map("ordenes_reparacion")
+}
+
+// Fotos de evidencia de la orden (recepción, diagnóstico, entrega) en Cloudinary
+model FotoOrden {
+  id        Int      @id @default(autoincrement())
+  ordenId   Int
+  orden     OrdenReparacion @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  url       String
+  publicId  String   @unique
+  createdAt DateTime @default(now())
+
+  @@index([ordenId])
+  @@map("fotos_orden")
 }
 
 // Historial de cambios de estado, para trazabilidad completa

@@ -61,4 +61,17 @@ export const ordenReparacionController = {
     await ordenReparacionService.delete(id);
     res.status(200).json({ ok: true, mensaje: "Orden de reparación eliminada correctamente", data: null });
   },
+
+  subirFotos: async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    const archivos = (req.files as Express.Multer.File[]) ?? [];
+    const fotos = await ordenReparacionService.agregarFotos(id, archivos);
+    res.status(201).json({ ok: true, mensaje: "Fotos subidas correctamente", data: fotos });
+  },
+
+  eliminarFoto: async (req: Request, res: Response) => {
+    const fotoId = Number(req.params.fotoId);
+    await ordenReparacionService.eliminarFoto(fotoId);
+    res.status(200).json({ ok: true, mensaje: "Foto eliminada correctamente", data: null });
+  },
 };

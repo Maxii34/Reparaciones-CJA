@@ -24,6 +24,9 @@ export const ordenReparacionRepository = {
         pagos: {
           orderBy: { fecha: "desc" },
         },
+        fotos: {
+          orderBy: { id: "asc" },
+        },
         historialEstados: {
           orderBy: { fecha: "desc" },
           include: {
@@ -59,6 +62,9 @@ export const ordenReparacionRepository = {
         },
         pagos: {
           orderBy: { fecha: "desc" },
+        },
+        fotos: {
+          orderBy: { id: "asc" },
         },
         historialEstados: {
           orderBy: { fecha: "desc" },
