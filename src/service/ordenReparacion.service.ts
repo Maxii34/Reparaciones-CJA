@@ -2,7 +2,7 @@ import { ordenReparacionRepository } from "../repositores/ordenreparacion.reposi
 import { equipoRepository } from "../repositores/equipo.repository";
 import { usuarioRepository } from "../repositores/usuario.repository";
 import { historialEstadoOrdenRepository } from "../repositores/historialEstadoOrden.repository";
-import { NotFoundError } from "../utils/errors";
+import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors";
 import type {
   CreateOrdenReparacionInput,
   UpdateOrdenReparacionInput,
@@ -63,6 +63,38 @@ export const ordenReparacionService = {
       if (!tecnico) {
         throw new NotFoundError("Técnico no encontrado");
       }
+    }
+
+    // Garantía: debe referenciar una orden de origen válida y vigente
+    if (data.esGarantia) {
+      if (!data.ordenOrigenId) {
+        throw new BadRequestError("El ingreso por garantía debe referenciar la orden de origen");
+      }
+      const origen = await ordenReparacionRepository.findById(data.ordenOrigenId);
+      if (!origen || origen.equipoId !== data.equipoId) {
+        throw new BadRequestError("La orden de origen no corresponde a este equipo");
+      }
+      if (origen.estado !== "ENTREGADO") {
+        throw new BadRequestError(`La orden ${origen.numero} aún no fue entregada`);
+      }
+      if (!origen.fechaEntrega) {
+        throw new BadRequestError(`La orden ${origen.numero} no tiene fecha de entrega registrada`);
+      }
+      const limite = new Date(origen.fechaEntrega);
+      limite.setDate(limite.getDate() + (origen.garantiaDias ?? 90));
+      if (limite.getTime() < Date.now()) {
+        throw new BadRequestError(`La garantía de la orden ${origen.numero} ya venció`);
+      }
+    } else if (data.ordenOrigenId) {
+      throw new BadRequestError("La orden de origen solo aplica a ingresos por garantía");
+    }
+
+    // Enforcement: un equipo no puede tener dos órdenes abiertas a la vez
+    const abierta = await ordenReparacionRepository.findAbiertaPorEquipo(data.equipoId);
+    if (abierta) {
+      throw new ConflictError(
+        `El equipo ya tiene la orden ${abierta.numero} abierta`
+      );
     }
 
     const numero = data.numero ?? (await generarNumeroOrden());

@@ -35,6 +35,14 @@ export const ordenReparacionRepository = {
 
     count: () => prisma.ordenReparacion.count(),
 
+  // Orden abierta de un equipo (cualquier estado menos ENTREGADO/CANCELADO)
+  findAbiertaPorEquipo: (equipoId: number) =>
+    prisma.ordenReparacion.findFirst({
+      where: { equipoId, estado: { notIn: ["ENTREGADO", "CANCELADO"] } },
+      orderBy: { id: "desc" },
+      select: { id: true, numero: true, estado: true },
+    }),
+
   findById: (id: number) =>
     prisma.ordenReparacion.findUnique({
       // Buscar una orden de reparación por su ID

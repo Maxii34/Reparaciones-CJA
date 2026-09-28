@@ -170,6 +170,12 @@ model OrdenReparacion {
   // Estado del flujo
   estado EstadoOrden @default(RECIBIDO)
 
+  // Garantía / reingreso: si es garantía, referencia a la orden de origen
+  esGarantia    Boolean @default(false)
+  ordenOrigenId Int?
+  origen        OrdenReparacion?  @relation("ReingresosGarantia", fields: [ordenOrigenId], references: [id], onDelete: Restrict)
+  reingresos    OrdenReparacion[] @relation("ReingresosGarantia")
+
   // Trazabilidad de usuarios
   creadoPorId Int?
   creadoPor   Usuario? @relation("OrdenesCreadasPor", fields: [creadoPorId], references: [id])

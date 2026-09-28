@@ -70,6 +70,10 @@ export const createOrdenReparacionSchema = z.object({
 
   estado: estadoOrdenEnum.optional().default("RECIBIDO"),
 
+  // Garantía / reingreso: si es garantía debe referenciar la orden de origen
+  esGarantia: z.boolean().optional().default(false),
+  ordenOrigenId: z.number().int().positive().optional().nullable(),
+
   creadoPorId: z.number().int().positive().optional().nullable(),
   tecnicoId: z.number().int().positive().optional().nullable(),
 });
@@ -106,6 +110,9 @@ export const updateOrdenReparacionSchema = z.object({
   firmaTecnicoRecepcion: z.boolean().optional(),
 
   estado: estadoOrdenEnum,
+
+  esGarantia: z.boolean().optional(),
+  ordenOrigenId: z.number().int().positive().optional().nullable(),
 
   creadoPorId: z.number().int().positive().optional().nullable(),
   tecnicoId: z.number().int().positive("El técnico a cargo es obligatorio"),
