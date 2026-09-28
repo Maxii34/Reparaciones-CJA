@@ -4,7 +4,7 @@ import { subirImagenCloudinary, eliminarImagenCloudinary } from "../utils/subirI
 import { equipoRepository } from "../repositores/equipo.repository";
 import { usuarioRepository } from "../repositores/usuario.repository";
 import { historialEstadoOrdenRepository } from "../repositores/historialEstadoOrden.repository";
-import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors";
+import { AppError, BadRequestError, ConflictError, NotFoundError } from "../utils/errors";
 import type {
   CreateOrdenReparacionInput,
   UpdateOrdenReparacionInput,
@@ -122,7 +122,7 @@ export const ordenReparacionService = {
 
     // El repository tipa como Prisma.OrdenReparacionCreateInput (versión con
     // relaciones), por eso mapeamos los FK a connect en lugar de pasarlos directos.
-    const { equipoId, creadoPorId, tecnicoId, ...resto } = data;
+    const { equipoId, creadoPorId, tecnicoId, ordenOrigenId, ...resto } = data;
 
     const creada = await ordenReparacionRepository.create({
       ...resto,
@@ -130,6 +130,9 @@ export const ordenReparacionService = {
       equipo: { connect: { id: equipoId } },
       ...(creadoPorId ? { creadoPor: { connect: { id: creadoPorId } } } : {}),
       ...(tecnicoId ? { tecnico: { connect: { id: tecnicoId } } } : {}),
+      // A esta altura ordenOrigenId solo puede venir con esGarantia=true
+      // (si no, se lanzó 400 más arriba); null/undefined se omite.
+      ...(ordenOrigenId ? { origen: { connect: { id: ordenOrigenId } } } : {}),
     });
 
     // Primera entrada de trazabilidad: la recepción inicial
@@ -148,7 +151,7 @@ export const ordenReparacionService = {
       throw new NotFoundError("Orden de reparación no encontrada");
     }
 
-    const { equipoId, creadoPorId, tecnicoId, ...resto } = data;
+    const { equipoId, creadoPorId, tecnicoId, ordenOrigenId, ...resto } = data;
 
     if (equipoId !== undefined) {
       const equipo = await equipoRepository.findById(equipoId);
@@ -179,10 +182,15 @@ export const ordenReparacionService = {
           ? { creadoPor: { disconnect: true } }
           : { creadoPor: { connect: { id: creadoPorId } } }
         : {}),
-      ...(tecnicoId !== undefined
+        ...(tecnicoId !== undefined
         ? tecnicoId === null
           ? { tecnico: { disconnect: true } }
           : { tecnico: { connect: { id: tecnicoId } } }
+        : {}),
+      ...(ordenOrigenId !== undefined
+        ? ordenOrigenId === null
+          ? { origen: { disconnect: true } }
+          : { origen: { connect: { id: ordenOrigenId } } }
         : {}),
     });
 
@@ -308,7 +316,18 @@ export const ordenReparacionService = {
       throw new BadRequestError("Debes enviar al menos una imagen en el campo 'fotos'");
     }
 
-    const subidas = await Promise.all(archivos.map((a) => subirImagenCloudinary(a.buffer)));
+    let subidas: Awaited<ReturnType<typeof subirImagenCloudinary>>[];
+    try {
+      subidas = await Promise.all(archivos.map((a) => subirImagenCloudinary(a.buffer)));
+    } catch (e) {
+      // Detalle técnico solo en consola del servidor (credenciales, red, etc.)
+      // eslint-disable-next-line no-console
+      console.error(`Cloudinary upload orden ${id}:`, e);
+      throw new AppError(
+        "No se pudo subir la imagen. Revisá la conexión e intentá de nuevo.",
+        502
+      );
+    }
     const fotos = await Promise.all(
       subidas.map((r) => fotoOrdenRepository.create(id, r.secure_url, r.public_id)),
     );
