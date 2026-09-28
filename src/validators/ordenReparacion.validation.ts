@@ -140,3 +140,32 @@ export const listOrdenesQuerySchema = z.object({
 export type CreateOrdenReparacionInput = z.infer<typeof createOrdenReparacionSchema>;
 export type UpdateOrdenReparacionInput = z.infer<typeof updateOrdenReparacionSchema>;
 export type ChangeEstadoOrdenInput = z.infer<typeof changeEstadoOrdenSchema>;
+
+// Fases del flujo de taller: cada endpoint valida solo lo suyo y la
+// máquina de estados (en el service) decide si la transición es válida.
+export const faseDiagnosticoSchema = z.object({
+  diagnostico: z.string().trim().min(1, "El diagnóstico es obligatorio").max(2000),
+  pruebasRealizadas: z.string().max(2000).trim().optional().nullable(),
+  tecnicoId: z.number().int().positive("El técnico a cargo es obligatorio"),
+});
+
+export const faseAutorizacionSchema = z.object({
+  decision: z.enum(["AUTORIZADO", "ESPERA_REPUESTO"]),
+});
+
+export const faseReparacionSchema = z.object({
+  reparacionRealizada: z.string().trim().min(1, "La reparación realizada es obligatoria").max(2000),
+  manoDeObra: decimalDinero.optional(),
+  recomendaciones: z.string().max(2000).trim().optional().nullable(),
+});
+
+export const faseCierreSchema = z.object({
+  precioFinal: decimalDinero,
+  conformidadEntregaCliente: z.boolean().optional().default(true),
+  fechaEntrega: z.coerce.date().optional(),
+});
+
+export type FaseDiagnosticoInput = z.infer<typeof faseDiagnosticoSchema>;
+export type FaseAutorizacionInput = z.infer<typeof faseAutorizacionSchema>;
+export type FaseReparacionInput = z.infer<typeof faseReparacionSchema>;
+export type FaseCierreInput = z.infer<typeof faseCierreSchema>;

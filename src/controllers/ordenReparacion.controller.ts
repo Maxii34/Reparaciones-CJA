@@ -32,6 +32,30 @@ export const ordenReparacionController = {
     res.status(200).json({ ok: true, mensaje: "Orden de reparación actualizada correctamente", data: orden });
   },
 
+  faseDiagnostico: async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    const orden = await ordenReparacionService.faseDiagnostico(id, req.body);
+    res.status(200).json({ ok: true, mensaje: "Diagnóstico guardado. La orden pasó a En diagnóstico", data: orden });
+  },
+
+  faseAutorizacion: async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    const orden = await ordenReparacionService.faseAutorizacion(id, req.body);
+    res.status(200).json({ ok: true, mensaje: "Autorización registrada correctamente", data: orden });
+  },
+
+  faseReparacion: async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    const orden = await ordenReparacionService.faseReparacion(id, req.body);
+    res.status(200).json({ ok: true, mensaje: "Reparación guardada. La orden quedó Lista", data: orden });
+  },
+
+  faseCierre: async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    const orden = await ordenReparacionService.faseCierre(id, req.body);
+    res.status(200).json({ ok: true, mensaje: "Orden entregada correctamente", data: orden });
+  },
+
   delete: async (req: Request, res: Response) => {
     const id = Number(req.params.id);
     await ordenReparacionService.delete(id);

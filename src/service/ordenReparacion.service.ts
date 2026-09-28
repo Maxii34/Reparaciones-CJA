@@ -6,7 +6,26 @@ import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors";
 import type {
   CreateOrdenReparacionInput,
   UpdateOrdenReparacionInput,
+  FaseAutorizacionInput,
+  FaseCierreInput,
+  FaseDiagnosticoInput,
+  FaseReparacionInput,
 } from "../validators/ordenReparacion.validation";
+
+// Máquina de estados del taller: a qué estado se puede llegar desde cada uno
+const TRANSICIONES: Record<string, string[]> = {
+  EN_DIAGNOSTICO: ["RECIBIDO", "EN_DIAGNOSTICO"],
+  EN_REPARACION: ["EN_DIAGNOSTICO", "ESPERANDO_REPUESTO"],
+  ESPERANDO_REPUESTO: ["EN_DIAGNOSTICO", "ESPERANDO_REPUESTO"],
+  LISTO: ["EN_REPARACION"],
+  ENTREGADO: ["LISTO", "ENTREGADO"],
+};
+
+function exigirTransicion(actual: string, destino: string) {
+  if (!TRANSICIONES[destino]?.includes(actual)) {
+    throw new ConflictError(`No se puede pasar de ${actual} a ${destino}`);
+  }
+}
 
 // Re-exportamos los tipos de Zod como DTOs para mantener
 // una sola fuente de verdad (igual que equipo/cliente usan interfaces locales).
@@ -174,6 +193,95 @@ export const ordenReparacionService = {
       });
     }
 
+    return actualizada;
+  },
+
+  // Fase 1: diagnóstico -> EN_DIAGNOSTICO
+  faseDiagnostico: async (id: number, data: FaseDiagnosticoInput) => {
+    const orden = await ordenReparacionRepository.findById(id);
+    if (!orden) {
+      throw new NotFoundError("Orden de reparación no encontrada");
+    }
+    exigirTransicion(orden.estado, "EN_DIAGNOSTICO");
+    const tecnico = await usuarioRepository.findById(data.tecnicoId);
+    if (!tecnico) {
+      throw new NotFoundError("Técnico no encontrado");
+    }
+    const actualizada = await ordenReparacionRepository.update(id, {
+      diagnostico: data.diagnostico,
+      pruebasRealizadas: data.pruebasRealizadas ?? undefined,
+      tecnico: { connect: { id: data.tecnicoId } },
+      estado: "EN_DIAGNOSTICO",
+    });
+    await historialEstadoOrdenRepository.create({
+      ordenId: id,
+      estado: "EN_DIAGNOSTICO",
+      usuarioId: data.tecnicoId,
+    });
+    return actualizada;
+  },
+
+  // Fase 2: autorización del cliente -> EN_REPARACION o ESPERANDO_REPUESTO
+  faseAutorizacion: async (id: number, data: FaseAutorizacionInput) => {
+    const orden = await ordenReparacionRepository.findById(id);
+    if (!orden) {
+      throw new NotFoundError("Orden de reparación no encontrada");
+    }
+    const destino = data.decision === "AUTORIZADO" ? "EN_REPARACION" : "ESPERANDO_REPUESTO";
+    exigirTransicion(orden.estado, destino);
+    const actualizada = await ordenReparacionRepository.update(id, {
+      estado: destino,
+      ...(data.decision === "AUTORIZADO"
+        ? { autorizadoCliente: true, fechaAutorizacion: new Date() }
+        : {}),
+    });
+    await historialEstadoOrdenRepository.create({
+      ordenId: id,
+      estado: destino,
+      usuarioId: orden.tecnicoId ?? undefined,
+    });
+    return actualizada;
+  },
+
+  // Fase 3: reparación -> LISTO
+  faseReparacion: async (id: number, data: FaseReparacionInput) => {
+    const orden = await ordenReparacionRepository.findById(id);
+    if (!orden) {
+      throw new NotFoundError("Orden de reparación no encontrada");
+    }
+    exigirTransicion(orden.estado, "LISTO");
+    const actualizada = await ordenReparacionRepository.update(id, {
+      reparacionRealizada: data.reparacionRealizada,
+      ...(data.manoDeObra !== undefined ? { manoDeObra: data.manoDeObra } : {}),
+      ...(data.recomendaciones !== undefined ? { recomendaciones: data.recomendaciones } : {}),
+      estado: "LISTO",
+    });
+    await historialEstadoOrdenRepository.create({
+      ordenId: id,
+      estado: "LISTO",
+      usuarioId: orden.tecnicoId ?? undefined,
+    });
+    return actualizada;
+  },
+
+  // Fase 4: cierre y entrega -> ENTREGADO
+  faseCierre: async (id: number, data: FaseCierreInput) => {
+    const orden = await ordenReparacionRepository.findById(id);
+    if (!orden) {
+      throw new NotFoundError("Orden de reparación no encontrada");
+    }
+    exigirTransicion(orden.estado, "ENTREGADO");
+    const actualizada = await ordenReparacionRepository.update(id, {
+      precioFinal: data.precioFinal,
+      conformidadEntregaCliente: data.conformidadEntregaCliente ?? true,
+      fechaEntrega: data.fechaEntrega ?? new Date(),
+      estado: "ENTREGADO",
+    });
+    await historialEstadoOrdenRepository.create({
+      ordenId: id,
+      estado: "ENTREGADO",
+      usuarioId: orden.tecnicoId ?? undefined,
+    });
     return actualizada;
   },
 
