@@ -4,11 +4,12 @@ import { Prisma } from "../generated/prisma/client";
 // CRUD básico: crear, listar, obtener por ID, actualizar por ID y eliminar por ID.
 
 export const ordenReparacionRepository = {
-  // Buscar todas las órdenes - listar
-  findAll: ( skip?: number, take?: number ) =>
+  // Buscar todas las órdenes - listar (where opcional para filtros)
+  findAll: ( skip?: number, take?: number, where?: Prisma.OrdenReparacionWhereInput ) =>
     prisma.ordenReparacion.findMany({
         skip,
         take,
+        where,
       // Orden ascendente por ID
       orderBy: { id: "asc" },
       // Incluir equipo/cliente, técnico, pagos e historial para la ficha
@@ -36,7 +37,8 @@ export const ordenReparacionRepository = {
       },
     }),
 
-    count: () => prisma.ordenReparacion.count(),
+    count: (where?: Prisma.OrdenReparacionWhereInput) =>
+      prisma.ordenReparacion.count({ where }),
 
   // Orden abierta de un equipo (cualquier estado menos ENTREGADO/CANCELADO)
   findAbiertaPorEquipo: (equipoId: number) =>

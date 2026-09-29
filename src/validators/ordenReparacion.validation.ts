@@ -127,15 +127,28 @@ export const ordenReparacionIdParamSchema = z.object({
   id: z.coerce.number().int("El id debe ser entero").positive("El id debe ser positivo"),
 });
 
-export const listOrdenesQuerySchema = z.object({
-  estado: estadoOrdenEnum.optional(),
-  estadoPago: estadoPagoEnum.optional(),
-  equipoId: z.coerce.number().int().positive().optional(),
-  tecnicoId: z.coerce.number().int().positive().optional(),
-  search: z.string().trim().optional(),
-  page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(10),
-});
+const fechaCorta = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida (formato AAAA-MM-DD)")
+  .optional();
+
+export const listOrdenesQuerySchema = z
+  .object({
+    estado: estadoOrdenEnum.optional(),
+    estadoPago: estadoPagoEnum.optional(),
+    equipoId: z.coerce.number().int().positive().optional(),
+    tecnicoId: z.coerce.number().int().positive().optional(),
+    search: z.string().trim().optional(),
+    fechaDesde: fechaCorta,
+    fechaHasta: fechaCorta,
+    page: z.coerce.number().int().positive().optional().default(1),
+    limit: z.coerce.number().int().positive().max(100).optional().default(10),
+  })
+  .refine((d) => !d.fechaDesde || !d.fechaHasta || d.fechaHasta >= d.fechaDesde, {
+    message: "fechaHasta no puede ser anterior a fechaDesde",
+  });
+
+export type ListOrdenesQuery = z.infer<typeof listOrdenesQuerySchema>;
 
 export type CreateOrdenReparacionInput = z.infer<typeof createOrdenReparacionSchema>;
 export type UpdateOrdenReparacionInput = z.infer<typeof updateOrdenReparacionSchema>;
