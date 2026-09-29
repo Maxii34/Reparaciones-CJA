@@ -1,12 +1,22 @@
 import { Request, Response } from "express";
 import { ordenReparacionService } from "../service/ordenReparacion.service";
+import { listOrdenesQuerySchema } from "../validators/ordenReparacion.validation";
 
 export const ordenReparacionController = {
   getAll: async (req: Request, res: Response) => {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
+    // El query se valida con Zod (en Express 5 req.query es solo lectura,
+    // por eso no se usa el middleware validate que pisa req.body).
+    const parsed = listOrdenesQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({
+        ok: false,
+        mensaje: parsed.error.issues[0]?.message ?? "Filtros inválidos",
+      });
+      return;
+    }
+    const { page, limit, ...filtros } = parsed.data;
 
-    const resultado = await ordenReparacionService.getAll(page, limit);
+    const resultado = await ordenReparacionService.getAll(page, limit, filtros);
     res.status(200).json({
       ok: true,
       mensaje: "Órdenes de reparación obtenidas correctamente",

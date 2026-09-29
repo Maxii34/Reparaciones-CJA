@@ -8,11 +8,13 @@ import { AppError, BadRequestError, ConflictError, NotFoundError } from "../util
 import type {
   CreateOrdenReparacionInput,
   UpdateOrdenReparacionInput,
+  ListOrdenesQuery,
   FaseAutorizacionInput,
   FaseCierreInput,
   FaseDiagnosticoInput,
   FaseReparacionInput,
 } from "../validators/ordenReparacion.validation";
+import type { Prisma } from "../generated/prisma/client";
 
 // Máquina de estados del taller: a qué estado se puede llegar desde cada uno
 const TRANSICIONES: Record<string, string[]> = {
@@ -44,12 +46,38 @@ const generarNumeroOrden = async (): Promise<string> => {
 };
 
 export const ordenReparacionService = {
-  getAll: async (page: number, limit: number) => {
+  getAll: async (
+    page: number,
+    limit: number,
+    filtros: Omit<ListOrdenesQuery, "page" | "limit"> = {}
+  ) => {
     const skip = (page - 1) * limit;
 
+    // Filtros de búsqueda: N° de orden, cliente (nombre/apellido),
+    // técnico (nombre) y rango de fecha de ingreso.
+    const where: Prisma.OrdenReparacionWhereInput = {};
+    if (filtros.estado) where.estado = filtros.estado;
+    if (filtros.estadoPago) where.estadoPago = filtros.estadoPago;
+    if (filtros.equipoId) where.equipoId = filtros.equipoId;
+    if (filtros.tecnicoId) where.tecnicoId = filtros.tecnicoId;
+    if (filtros.fechaDesde || filtros.fechaHasta) {
+      where.fechaIngreso = {};
+      if (filtros.fechaDesde) where.fechaIngreso.gte = new Date(`${filtros.fechaDesde}T00:00:00`);
+      if (filtros.fechaHasta) where.fechaIngreso.lte = new Date(`${filtros.fechaHasta}T23:59:59.999`);
+    }
+    const q = filtros.search?.trim();
+    if (q) {
+      const texto: Prisma.StringFilter = { contains: q, mode: "insensitive" };
+      where.OR = [
+        { numero: texto },
+        { equipo: { cliente: { OR: [{ nombre: texto }, { apellido: texto }] } } },
+        { tecnico: { nombre: texto } },
+      ];
+    }
+
     const [ordenes, total] = await Promise.all([
-      ordenReparacionRepository.findAll(skip, limit),
-      ordenReparacionRepository.count(),
+      ordenReparacionRepository.findAll(skip, limit, where),
+      ordenReparacionRepository.count(where),
     ]);
 
     return {
