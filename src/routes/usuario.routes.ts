@@ -7,6 +7,7 @@ import {
   loginSchema,
   refreshTokenSchema,
   actualizarUsuarioSchema,
+  restablecerClaveSchema,
 } from "../validators/usuario.validation";
 
 const router = Router();
@@ -21,6 +22,7 @@ router.get("/", verificarToken, esAdmin, usuarioController.getAll);
 router.get("/:id", verificarToken, esAdmin, usuarioController.getById);
 router.post("/", verificarToken, esAdmin, validate(crearUsuarioSchema), usuarioController.create);
 router.put("/:id", verificarToken, esAdmin, validate(actualizarUsuarioSchema), usuarioController.update);
+router.put("/:id/password", verificarToken, esAdmin, validate(restablecerClaveSchema), usuarioController.restablecerClave);
 router.delete("/:id", verificarToken, esAdmin, usuarioController.delete);
 
 export default router;
