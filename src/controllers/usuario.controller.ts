@@ -44,4 +44,10 @@ export const usuarioController = {
     await usuarioService.delete(id);
     res.status(200).json({ ok: true, mensaje: "Usuario eliminado correctamente", data: null });
   },
+
+  restablecerClave: async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    await usuarioService.restablecerClave(id, req.body.password);
+    res.status(200).json({ ok: true, mensaje: "Contraseña actualizada correctamente", data: null });
+  },
 };

@@ -23,5 +23,9 @@ export const actualizarUsuarioSchema = z.object({
   activo: z.boolean().optional(),
 }).strict();
 
+export const restablecerClaveSchema = z.object({
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+}).strict();
+
 export type CrearUsuarioInput = z.infer<typeof crearUsuarioSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;

@@ -156,4 +156,15 @@ export const usuarioService = {
     await refreshTokenRepository.revocarTodosDeUsuario(id);
     return usuarioRepository.delete(id);
   },
+
+  restablecerClave: async (id: number, password: string) => {
+    const usuario = await usuarioRepository.findById(id);
+    if (!usuario) {
+      throw new NotFoundError("Usuario no encontrado");
+    }
+
+    const passwordHasheada = await bcrypt.hash(password, 10);
+    await usuarioRepository.update(id, { passwordHash: passwordHasheada });
+    await refreshTokenRepository.revocarTodosDeUsuario(id);
+  },
 };
